@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { HUD } from './HUD.js'
 import { ProductCard } from './ProductCard.js'
 import { AnswerButtons } from './AnswerButtons.js'
@@ -11,14 +11,31 @@ const REVEAL_DELAY_MS = 900
 
 export function GameScreen() {
   const { state, dispatch } = useGameState()
-  const { currentLeft, currentRight, lives, maxLives, streak, selectedCategory, activePool } = state
+  const { currentLeft, currentRight, lives, streak, mode, timeLimit, selectedCategories, activePool } =
+    state
 
   const [answered, setAnswered] = useState(false)
   const [revealVariant, setRevealVariant] = useState<'neutral' | 'correct' | 'incorrect'>('neutral')
+  // Countdown for timed mode; null in classic mode. The clock runs continuously,
+  // including during the answer-reveal animation.
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(
+    mode === 'timed' ? timeLimit : null
+  )
 
-  const selectedCategoryName = selectedCategory
-    ? currentLeft?.categoryName ?? selectedCategory
-    : null
+  useEffect(() => {
+    if (mode !== 'timed' || secondsLeft === null) return
+    if (secondsLeft <= 0) {
+      dispatch({ type: 'TIME_UP' })
+      return
+    }
+    const id = setTimeout(() => setSecondsLeft((s) => (s === null ? null : s - 1)), 1000)
+    return () => clearTimeout(id)
+  }, [mode, secondsLeft, dispatch])
+
+  // When the pool is filtered to specific groups, show the current product's
+  // own group (it changes as you move across the selected groups).
+  const selectedCategoryName =
+    selectedCategories.length > 0 ? currentLeft?.categoryName ?? null : null
 
   const handleAnswer = useCallback(
     (guess: 'higher' | 'lower') => {
@@ -48,8 +65,9 @@ export function GameScreen() {
     <div className={styles.screen} data-testid="game-screen">
       <HUD
         lives={lives}
-        maxLives={maxLives}
         streak={streak}
+        mode={mode}
+        secondsLeft={secondsLeft}
         category={selectedCategoryName}
       />
 

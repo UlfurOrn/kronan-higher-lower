@@ -118,10 +118,14 @@ export interface AnswerResult {
 export interface GameState {
   phase: GamePhase
   mode: GameMode
-  selectedCategory: string | null
+  /** Time limit in seconds for timed mode; null in classic mode. */
+  timeLimit: number | null
+  /** Selected category slugs; empty means all groups. */
+  selectedCategories: string[]
+  /** Both modes are single-life: a wrong answer ends the run. */
   lives: number
-  maxLives: number
   streak: number
+  /** Best score for the current mode (and time limit, in timed mode). */
   bestStreak: number
   currentLeft: GameProduct | null
   currentRight: GameProduct | null
@@ -134,13 +138,16 @@ export type GameAction =
   | {
       type: 'START_GAME'
       mode: GameMode
-      category: string | null
+      timeLimit: number | null
+      categories: string[]
+      bestStreak: number
       initialLeft: GameProduct
       initialRight: GameProduct
       activePool: GameProduct[]
     }
   | { type: 'ANSWER'; guess: 'higher' | 'lower' }
   | { type: 'NEXT_ROUND'; nextProduct: GameProduct }
+  | { type: 'TIME_UP' }
   | {
       type: 'PLAY_AGAIN'
       initialLeft: GameProduct
@@ -148,4 +155,3 @@ export type GameAction =
       activePool: GameProduct[]
     }
   | { type: 'CHANGE_SETTINGS' }
-  | { type: 'SET_BEST_STREAK'; bestStreak: number }

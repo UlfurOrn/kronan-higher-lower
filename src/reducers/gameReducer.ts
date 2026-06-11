@@ -1,12 +1,12 @@
-import { evaluateAnswer, applyAnswer, getMaxLives } from '../services/gameLogicService.js'
+import { evaluateAnswer, applyAnswer, STARTING_LIVES } from '../services/gameLogicService.js'
 import type { GameState, GameAction } from '../types/index.js'
 
 export const initialState: GameState = {
   phase: 'setup',
-  mode: 'normal',
-  selectedCategory: null,
+  mode: 'classic',
+  timeLimit: null,
+  selectedCategories: [],
   lives: 0,
-  maxLives: 0,
   streak: 0,
   bestStreak: 0,
   currentLeft: null,
@@ -18,15 +18,15 @@ export const initialState: GameState = {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'START_GAME': {
-      const maxLives = getMaxLives(action.mode)
       return {
         ...state,
         phase: 'playing',
         mode: action.mode,
-        selectedCategory: action.category,
-        lives: maxLives,
-        maxLives,
+        timeLimit: action.timeLimit,
+        selectedCategories: action.categories,
+        lives: STARTING_LIVES,
         streak: 0,
+        bestStreak: action.bestStreak,
         currentLeft: action.initialLeft,
         currentRight: action.initialRight,
         activePool: action.activePool,
@@ -49,8 +49,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           phase: 'game_over',
           lives: 0,
           // Preserve the run the player reached this game (what the HUD showed
-          // the instant before the fatal guess). The wrong-answer reset to 0
-          // is only meaningful for an ongoing run, not the final score.
+          // the instant before the fatal guess) as the final score.
           streak: state.streak,
           bestStreak: result.newBestStreak,
           lastRound: {
@@ -77,11 +76,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
     }
 
+    case 'TIME_UP': {
+      // Timed mode only: the clock ran out without failing. The current streak
+      // is the final score; there is no losing round to show.
+      if (state.phase !== 'playing') return state
+      return {
+        ...state,
+        phase: 'game_over',
+        lives: 0,
+        lastRound: null,
+      }
+    }
+
     case 'PLAY_AGAIN': {
+      // Replays the same mode/time limit, so bestStreak (already loaded for it) carries over.
       return {
         ...state,
         phase: 'playing',
-        lives: state.maxLives,
+        lives: STARTING_LIVES,
         streak: 0,
         currentLeft: action.initialLeft,
         currentRight: action.initialRight,
@@ -100,13 +112,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         currentRight: null,
         lastRound: null,
         activePool: [],
-      }
-    }
-
-    case 'SET_BEST_STREAK': {
-      return {
-        ...state,
-        bestStreak: Math.max(state.bestStreak, action.bestStreak),
       }
     }
 

@@ -35,13 +35,25 @@ const products: GameProduct[] = [
 ]
 
 describe('buildPool', () => {
-  it('returns all eligible products when category is null', () => {
-    const pool = buildPool(products, null)
+  it('returns all eligible products when no categories are selected', () => {
+    const pool = buildPool(products, [])
     expect(pool).toHaveLength(5)
   })
 
-  it('filters by category slug', () => {
-    const pool = buildPool(products, 'mjolk')
+  it('filters by a single category slug', () => {
+    const pool = buildPool(products, ['mjolk'])
+    expect(pool).toHaveLength(2)
+    expect(pool.every((p) => p.categorySlug === 'mjolk')).toBe(true)
+  })
+
+  it('includes products from every selected category', () => {
+    const pool = buildPool(products, ['mjolk', 'kjot'])
+    expect(pool).toHaveLength(4)
+    expect(pool.every((p) => p.categorySlug === 'mjolk' || p.categorySlug === 'kjot')).toBe(true)
+  })
+
+  it('ignores selected categories that have no products', () => {
+    const pool = buildPool(products, ['mjolk', 'nonexistent'])
     expect(pool).toHaveLength(2)
     expect(pool.every((p) => p.categorySlug === 'mjolk')).toBe(true)
   })
@@ -51,7 +63,7 @@ describe('buildPool', () => {
       ...products,
       makeProduct('bad', 'mjolk', 'Mjólk', { imageUrl: '' }),
     ]
-    const pool = buildPool(withBadImage, 'mjolk')
+    const pool = buildPool(withBadImage, ['mjolk'])
     expect(pool.every((p) => p.imageUrl !== '')).toBe(true)
   })
 
@@ -60,12 +72,12 @@ describe('buildPool', () => {
       ...products,
       makeProduct('zero', 'mjolk', 'Mjólk', { pricePerUnit: 0 }),
     ]
-    const pool = buildPool(withZeroPrice, 'mjolk')
+    const pool = buildPool(withZeroPrice, ['mjolk'])
     expect(pool.every((p) => p.pricePerUnit > 0)).toBe(true)
   })
 
-  it('returns empty array for category with no products', () => {
-    const pool = buildPool(products, 'nonexistent')
+  it('returns empty array when selected categories have no products', () => {
+    const pool = buildPool(products, ['nonexistent'])
     expect(pool).toHaveLength(0)
   })
 })

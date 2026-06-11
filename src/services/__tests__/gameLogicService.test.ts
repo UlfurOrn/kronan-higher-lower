@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { evaluateAnswer, applyAnswer, getMaxLives } from '../gameLogicService.js'
+import { evaluateAnswer, applyAnswer } from '../gameLogicService.js'
 import type { GameProduct } from '../../types/index.js'
 
 function makeProduct(pricePerUnit: number): GameProduct {
@@ -14,16 +14,6 @@ function makeProduct(pricePerUnit: number): GameProduct {
     unitLabel: 'kr/kg',
   }
 }
-
-describe('getMaxLives', () => {
-  it('returns 3 for normal mode', () => {
-    expect(getMaxLives('normal')).toBe(3)
-  })
-
-  it('returns 1 for hard mode', () => {
-    expect(getMaxLives('hard')).toBe(1)
-  })
-})
 
 describe('evaluateAnswer', () => {
   const low = makeProduct(100)

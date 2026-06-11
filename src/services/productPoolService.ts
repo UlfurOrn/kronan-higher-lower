@@ -6,13 +6,15 @@ import type { GameProduct, Category } from '../types/index.js'
 
 export function buildPool(
   products: GameProduct[],
-  category: string | null
+  categories: string[]
 ): GameProduct[] {
   const eligible = products.filter(
     (p) => p.imageUrl.trim() !== '' && p.pricePerUnit > 0
   )
-  if (category === null) return eligible
-  return eligible.filter((p) => p.categorySlug === category)
+  // An empty selection means "all groups".
+  if (categories.length === 0) return eligible
+  const selected = new Set(categories)
+  return eligible.filter((p) => selected.has(p.categorySlug))
 }
 
 export function pickInitialPair(

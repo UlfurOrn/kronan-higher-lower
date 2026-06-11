@@ -6,7 +6,7 @@ import React, {
   type Dispatch,
 } from 'react'
 import { gameReducer, initialState } from '../reducers/gameReducer.js'
-import { readBestStreak, writeBestStreak } from '../services/localStorageService.js'
+import { writeBestScore } from '../services/localStorageService.js'
 import type { GameState, GameAction } from '../types/index.js'
 
 interface GameStateContextValue {
@@ -19,22 +19,14 @@ const GameStateContext = createContext<GameStateContextValue | null>(null)
 export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState)
 
-  // On mount: load best streak from localStorage
+  // Persist the best score for the current mode/time limit whenever it changes.
+  // writeBestScore only stores it if it beats the existing record, so re-writing
+  // a freshly-loaded best (e.g. on START_GAME) is a harmless no-op.
   useEffect(() => {
-    const saved = readBestStreak()
-    if (saved > 0) {
-      dispatch({ type: 'SET_BEST_STREAK', bestStreak: saved })
+    if (state.bestStreak > 0) {
+      writeBestScore(state.mode, state.timeLimit, state.bestStreak)
     }
-  }, [])
-
-  // Persist best streak when it increases
-  const prevBestStreak = React.useRef(state.bestStreak)
-  useEffect(() => {
-    if (state.bestStreak > prevBestStreak.current) {
-      writeBestStreak(state.bestStreak)
-      prevBestStreak.current = state.bestStreak
-    }
-  }, [state.bestStreak])
+  }, [state.bestStreak, state.mode, state.timeLimit])
 
   const value = React.useMemo(() => ({ state, dispatch }), [state, dispatch])
 

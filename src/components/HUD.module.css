@@ -19,6 +19,20 @@
   font-size: 1.2rem;
 }
 
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.timerLow {
+  color: #e5484d;
+}
+
 .streak {
   display: flex;
   align-items: center;

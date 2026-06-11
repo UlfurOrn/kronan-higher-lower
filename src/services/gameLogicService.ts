@@ -1,12 +1,17 @@
-import type { GameMode, GameProduct, AnswerResult } from '../types/index.js'
+import type { GameProduct, AnswerResult } from '../types/index.js'
 
 /**
  * Pure game logic functions — no side effects, fully unit-testable.
  */
 
-export function getMaxLives(mode: GameMode): number {
-  return mode === 'normal' ? 3 : 1
-}
+/** Both modes are single-life: one wrong answer ends the run ("without failing"). */
+export const STARTING_LIVES = 1
+
+/** Selectable time limits (seconds) offered in timed mode. */
+export const TIME_LIMIT_OPTIONS = [30, 60, 120] as const
+
+/** Default time limit pre-selected in timed mode. */
+export const DEFAULT_TIME_LIMIT = 60
 
 export function evaluateAnswer(
   left: GameProduct,

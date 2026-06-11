@@ -23,8 +23,10 @@ const pool = [pA, pB, pC]
 function startedState(overrides: Partial<GameState> = {}): GameState {
   const base = gameReducer(initialState, {
     type: 'START_GAME',
-    mode: 'normal',
-    category: null,
+    mode: 'classic',
+    timeLimit: null,
+    categories: [],
+    bestStreak: 0,
     initialLeft: pA,
     initialRight: pB,
     activePool: pool,
@@ -45,23 +47,27 @@ describe('gameReducer', () => {
       expect(state.phase).toBe('playing')
     })
 
-    it('sets normal mode lives to 3', () => {
+    it('starts with a single life in classic mode', () => {
       const state = startedState()
-      expect(state.lives).toBe(3)
-      expect(state.maxLives).toBe(3)
+      expect(state.lives).toBe(1)
+      expect(state.mode).toBe('classic')
+      expect(state.timeLimit).toBeNull()
     })
 
-    it('sets hard mode lives to 1', () => {
+    it('starts with a single life and the chosen time limit in timed mode', () => {
       const state = gameReducer(initialState, {
         type: 'START_GAME',
-        mode: 'hard',
-        category: null,
+        mode: 'timed',
+        timeLimit: 60,
+        categories: [],
+        bestStreak: 0,
         initialLeft: pA,
         initialRight: pB,
         activePool: pool,
       })
       expect(state.lives).toBe(1)
-      expect(state.maxLives).toBe(1)
+      expect(state.mode).toBe('timed')
+      expect(state.timeLimit).toBe(60)
     })
 
     it('resets streak to 0', () => {
@@ -69,17 +75,32 @@ describe('gameReducer', () => {
       expect(state.streak).toBe(0)
     })
 
-    it('preserves bestStreak from previous session', () => {
-      const stateWithBest = { ...initialState, bestStreak: 7 }
-      const newState = gameReducer(stateWithBest, {
+    it('stores the selected category slugs', () => {
+      const state = gameReducer(initialState, {
         type: 'START_GAME',
-        mode: 'normal',
-        category: null,
+        mode: 'classic',
+        timeLimit: null,
+        categories: ['mjolk', 'kjot'],
+        bestStreak: 0,
         initialLeft: pA,
         initialRight: pB,
         activePool: pool,
       })
-      expect(newState.bestStreak).toBe(7)
+      expect(state.selectedCategories).toEqual(['mjolk', 'kjot'])
+    })
+
+    it('loads the best score supplied for the chosen mode/time limit', () => {
+      const state = gameReducer(initialState, {
+        type: 'START_GAME',
+        mode: 'timed',
+        timeLimit: 30,
+        categories: [],
+        bestStreak: 7,
+        initialLeft: pA,
+        initialRight: pB,
+        activePool: pool,
+      })
+      expect(state.bestStreak).toBe(7)
     })
 
     it('sets currentLeft and currentRight', () => {
@@ -96,13 +117,9 @@ describe('gameReducer', () => {
       expect(state.streak).toBe(1)
     })
 
-    it('does not lose a life', () => {
+    it('keeps the player alive and playing', () => {
       const state = gameReducer(startedState(), { type: 'ANSWER', guess: 'higher' })
-      expect(state.lives).toBe(3)
-    })
-
-    it('stays in playing phase', () => {
-      const state = gameReducer(startedState(), { type: 'ANSWER', guess: 'higher' })
+      expect(state.lives).toBe(1)
       expect(state.phase).toBe('playing')
     })
 
@@ -113,34 +130,22 @@ describe('gameReducer', () => {
     })
   })
 
-  describe('ANSWER — incorrect', () => {
-    it('resets streak to 0', () => {
+  describe('ANSWER — incorrect (single life ends the run)', () => {
+    it('ends the game and zeroes lives', () => {
       // pA=100, pB=200, guess lower → incorrect
-      const state = gameReducer(startedState({ streak: 5 }), { type: 'ANSWER', guess: 'lower' })
-      expect(state.streak).toBe(0)
-    })
-
-    it('deducts one life', () => {
       const state = gameReducer(startedState(), { type: 'ANSWER', guess: 'lower' })
-      expect(state.lives).toBe(2)
-    })
-
-    it('transitions to game_over when last life lost', () => {
-      const lastLife = startedState({ lives: 1 })
-      const state = gameReducer(lastLife, { type: 'ANSWER', guess: 'lower' })
       expect(state.phase).toBe('game_over')
+      expect(state.lives).toBe(0)
     })
 
     it('preserves the run streak as the final score on game over', () => {
-      const lastLife = startedState({ lives: 1, streak: 6 })
-      const state = gameReducer(lastLife, { type: 'ANSWER', guess: 'lower' })
+      const state = gameReducer(startedState({ streak: 6 }), { type: 'ANSWER', guess: 'lower' })
       expect(state.phase).toBe('game_over')
       expect(state.streak).toBe(6)
     })
 
     it('records lastRound on game over', () => {
-      const lastLife = startedState({ lives: 1 })
-      const state = gameReducer(lastLife, { type: 'ANSWER', guess: 'lower' })
+      const state = gameReducer(startedState(), { type: 'ANSWER', guess: 'lower' })
       expect(state.lastRound?.left.sku).toBe('A')
       expect(state.lastRound?.right.sku).toBe('B')
       expect(state.lastRound?.guess).toBe('lower')
@@ -153,6 +158,21 @@ describe('gameReducer', () => {
     })
   })
 
+  describe('TIME_UP (timed mode)', () => {
+    it('ends the game keeping the streak as the final score, with no losing round', () => {
+      const s = startedState({ mode: 'timed', timeLimit: 60, streak: 8 })
+      const state = gameReducer(s, { type: 'TIME_UP' })
+      expect(state.phase).toBe('game_over')
+      expect(state.streak).toBe(8)
+      expect(state.lastRound).toBeNull()
+    })
+
+    it('is ignored when not in the playing phase', () => {
+      const state = gameReducer(initialState, { type: 'TIME_UP' })
+      expect(state.phase).toBe('setup')
+    })
+  })
+
   describe('NEXT_ROUND', () => {
     it('slides right to left, sets new right', () => {
       const state = gameReducer(startedState(), { type: 'NEXT_ROUND', nextProduct: pC })
@@ -162,8 +182,8 @@ describe('gameReducer', () => {
   })
 
   describe('PLAY_AGAIN', () => {
-    it('resets to playing with same maxLives', () => {
-      const over = gameReducer(startedState({ lives: 1 }), { type: 'ANSWER', guess: 'lower' })
+    it('resets to playing with a single life', () => {
+      const over = gameReducer(startedState(), { type: 'ANSWER', guess: 'lower' })
       const again = gameReducer(over, {
         type: 'PLAY_AGAIN',
         initialLeft: pA,
@@ -171,7 +191,7 @@ describe('gameReducer', () => {
         activePool: pool,
       })
       expect(again.phase).toBe('playing')
-      expect(again.lives).toBe(3)
+      expect(again.lives).toBe(1)
     })
 
     it('resets streak to 0', () => {
@@ -206,21 +226,6 @@ describe('gameReducer', () => {
       expect(state.currentLeft).toBeNull()
       expect(state.currentRight).toBeNull()
       expect(state.activePool).toHaveLength(0)
-    })
-  })
-
-  describe('SET_BEST_STREAK', () => {
-    it('sets bestStreak from localStorage', () => {
-      const state = gameReducer(initialState, { type: 'SET_BEST_STREAK', bestStreak: 8 })
-      expect(state.bestStreak).toBe(8)
-    })
-
-    it('does not overwrite higher existing bestStreak', () => {
-      const state = gameReducer({ ...initialState, bestStreak: 15 }, {
-        type: 'SET_BEST_STREAK',
-        bestStreak: 5,
-      })
-      expect(state.bestStreak).toBe(15)
     })
   })
 })

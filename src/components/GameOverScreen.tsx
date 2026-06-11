@@ -5,11 +5,16 @@ import styles from './GameOverScreen.module.css'
 
 export function GameOverScreen() {
   const { state, dispatch } = useGameState()
-  const { streak, bestStreak, lastRound, selectedCategory } = state
+  const { streak, bestStreak, lastRound, selectedCategories, mode, timeLimit } = state
+
+  const ranOutOfTime = lastRound === null
+  const heading = ranOutOfTime ? 'Tíminn búinn!' : 'Leikur lokið!'
+  const bestLabel =
+    mode === 'timed' ? `Besta (${timeLimit}s)` : 'Besta (klassískt)'
 
   function handlePlayAgain() {
     const allProducts = (window as unknown as { __products: typeof state.activePool }).__products ?? []
-    const pool = buildPool(allProducts, selectedCategory)
+    const pool = buildPool(allProducts, selectedCategories)
     const { left, right } = pickInitialPair(pool)
     dispatch({ type: 'PLAY_AGAIN', initialLeft: left, initialRight: right, activePool: pool })
   }
@@ -20,15 +25,15 @@ export function GameOverScreen() {
 
   return (
     <div className={styles.screen} data-testid="game-over-screen">
-      <h1 className={styles.heading}>Leikur lokið!</h1>
+      <h1 className={styles.heading}>{heading}</h1>
 
       <div className={styles.stats}>
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Röð þín</span>
+          <span className={styles.statLabel}>Þín stig</span>
           <span className={styles.statValue}>{streak}</span>
         </div>
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Besta röð</span>
+          <span className={styles.statLabel}>{bestLabel}</span>
           <span className={styles.statValue}>{bestStreak}</span>
         </div>
       </div>
