@@ -8,7 +8,7 @@ export function GameOverScreen() {
   const { streak, bestStreak, lastRound, selectedCategories, mode, timeLimit } = state
 
   const ranOutOfTime = lastRound === null
-  const heading = ranOutOfTime ? 'Tíminn búinn!' : 'Leikur lokið!'
+  const heading = ranOutOfTime ? 'Tíminn búinn!' : 'Leik lokið!'
   const bestLabel =
     mode === 'timed' ? `Besta (${timeLimit}s)` : 'Besta (klassískt)'
 
