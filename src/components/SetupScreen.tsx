@@ -5,6 +5,7 @@ import { buildPool, pickInitialPair } from '../services/productPoolService.js'
 import { TIME_LIMIT_OPTIONS, DEFAULT_TIME_LIMIT } from '../services/gameLogicService.js'
 import { readBestScore } from '../services/localStorageService.js'
 import type { GameMode } from '../types/index.js'
+import qrCode from '../images/qr-code.svg'
 import styles from './SetupScreen.module.css'
 
 export function SetupScreen() {
@@ -43,6 +44,12 @@ export function SetupScreen() {
 
   return (
     <div className={styles.screen} data-testid="setup-screen">
+      <img
+        src={qrCode}
+        alt="QR kóði — opna leikinn í síma"
+        className={styles.qrCode}
+        aria-hidden="true"
+      />
       <header className={styles.header}>
         <h1 className={styles.title}>Hærra eða Lægra?</h1>
         <p className={styles.subtitle}>
